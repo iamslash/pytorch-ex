@@ -6,7 +6,7 @@ $ conda install pytorch torchvision -c pytorch
 ```
 
 ```bash
-# Install
+# Install the env
 $ conda env create -f environment.yml
 
 # Freeze the env
