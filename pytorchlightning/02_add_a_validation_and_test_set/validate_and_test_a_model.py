@@ -7,6 +7,11 @@ from torchvision.datasets import MNIST
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 
+# Find the train and test splits
+import torch.utils.data as data
+from torchvision import datasets
+import torchvision.transforms as transforms
+
 # Define the PyTorch nn.Modules
 class Encoder(nn.Module):
     def __init__(self):
@@ -40,29 +45,63 @@ class LitAutoEncoder(pl.LightningModule):
         loss = F.mse_loss(x_hat, x)
         return loss
 
+    def test_step(self, batch, batch_idx):
+        # this is the test loop
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        z = self.encoder(x)
+        x_hat = self.decoder(z)
+        test_loss = F.mse_loss(x_hat, x)
+        self.log("test_loss", test_loss)        
+
+    def validation_step(self, batch, batch_idx):
+        # this is the validation loop
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        z = self.encoder(x)
+        x_hat = self.decoder(z)
+        val_loss = F.mse_loss(x_hat, x)
+        self.log("val_loss", val_loss)
+
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
-        return optimizer        
+        return optimizer
 
-# Define the training datatset
-dataset = MNIST(os.getcwd(), download=True, transform=transforms.ToTensor())
-train_loader = DataLoader(dataset)
+##################################################
+# Add a test loop
 
-# Train the model
+# Load data sets
+
+# Define the test datatset
+transform = transforms.ToTensor()
+train_set = datasets.MNIST(root="MNIST", download=True, train=True, transform=transform)
+test_set = datasets.MNIST(root="MNIST", download=True, train=False, transform=transform)
+test_loader = DataLoader(test_set)
+
 # model
 autoencoder = LitAutoEncoder(Encoder(), Decoder())
 
-# train model
+# test model
 trainer = pl.Trainer()
-trainer.fit(model=autoencoder, train_dataloaders=train_loader)
+trainer.test(autoencoder, dataloaders=test_loader)
 
-# Eliminate the training loop
-# autoencoder = LitAutoEncoder(Encoder(), Decoder())
-# optimizer = autoencoder.configure_optimizers()
+##################################################
+# Add a validation loop
 
-# for batch_idx, batch in enumerate(train_loader):
-#     loss = autoencoder.training_step(batch, batch_idx)
+# use 20% of training data for validation
+train_set_size = int(len(train_set) * 0.8)
+valid_set_size = len(train_set) - train_set_size
 
-#     loss.backward()
-#     optimizer.step()
-#     optimizer.zero_grad()
+# split the train set into two
+seed = torch.Generator().manual_seed(42)
+train_set, valid_set = data.random_split(train_set, [train_set_size, valid_set_size], generator=seed)
+
+# Train with the validation loop
+from torch.utils.data import DataLoader
+
+train_loader = DataLoader(train_set)
+valid_loader = DataLoader(valid_set)
+
+# train with both splits
+trainer = pl.Trainer()
+trainer.fit(model=autoencoder, train_dataloaders=train_loader, val_dataloaders=valid_loader)
