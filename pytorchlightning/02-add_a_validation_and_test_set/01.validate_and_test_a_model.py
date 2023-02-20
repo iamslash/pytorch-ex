@@ -1,16 +1,13 @@
-import os
-import torch
-from torch import nn
-import torch.nn.functional as F
-from torchvision import transforms
-from torchvision.datasets import MNIST
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
 
 # Find the train and test splits
 import torch.utils.data as data
-from torchvision import datasets
 import torchvision.transforms as transforms
+from torch import nn
+from torch.utils.data import DataLoader
+from torchvision import datasets
 
 # Define the PyTorch nn.Modules
 class Encoder(nn.Module):
@@ -81,9 +78,9 @@ test_loader = DataLoader(test_set)
 # model
 autoencoder = LitAutoEncoder(Encoder(), Decoder())
 
-# test model
-trainer = pl.Trainer()
-trainer.test(autoencoder, dataloaders=test_loader)
+# # test model
+# trainer = pl.Trainer()
+# trainer.test(autoencoder, dataloaders=test_loader)
 
 ##################################################
 # Add a validation loop
@@ -104,4 +101,6 @@ valid_loader = DataLoader(valid_set)
 
 # train with both splits
 trainer = pl.Trainer()
-trainer.fit(model=autoencoder, train_dataloaders=train_loader, val_dataloaders=valid_loader)
+trainer.fit(model=autoencoder,
+            train_dataloaders=train_loader,
+            val_dataloaders=valid_loader)
